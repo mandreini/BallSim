@@ -4,6 +4,7 @@ import numpy
 import pygame
 import gravity
 import parameters
+import menu
 
 pygame.init()
 
@@ -11,17 +12,14 @@ pygame.init()
 reso = (parameters.xmax, parameters.ymax)
 scr = pygame.display.set_mode(reso)
 
-# sim object
-galaxy = gravity.Gravity(parameters.num_planets)
-
-# image
-ballimg = pygame.image.load("spherical.gif")
-ballimg = pygame.transform.scale(ballimg, (25,25))
-ballrect = ballimg.get_rect()
+# menu object
+main_menu = menu.Menu()
 
 # game loop
 t0 = pygame.time.get_ticks() * 0.001
 running = True
+in_menu = True
+mdown = False
 
 while running:
     t = pygame.time.get_ticks() * 0.001
@@ -33,30 +31,34 @@ while running:
             running = False
 
         if event.type == pygame.MOUSEBUTTONDOWN:
-            mousex, mousey = pygame.mouse.get_pos()
-            galaxy.create_planet(mousex, mousey, parameters.mouse_mass)
-
+            mdown = True
         if event.type == pygame.MOUSEBUTTONUP:
-            mouse_planet_ind = numpy.where(galaxy.masses == parameters.mouse_mass)
-            if len(mouse_planet_ind):
-                galaxy.destroy(mouse_planet_ind)
+            pass
 
     keys = pygame.key.get_pressed()
+    mousepos = pygame.mouse.get_pos()
 
     if keys[pygame.K_ESCAPE]:
         running = False
     if keys[pygame.K_p]:
         dt = 0  # 'pause'
 
-    if keys[pygame.K_RIGHT]: galaxy.x_pos_list -= 1
-    if keys[pygame.K_LEFT]: galaxy.x_pos_list += 1
-    if keys[pygame.K_UP]: galaxy.y_pos_list += 1
-    if keys[pygame.K_DOWN]: galaxy.y_pos_list -= 1
+    if in_menu:
+        in_menu = not main_menu.draw(scr, mousepos, mdown)
+        if not in_menu:
+            galaxy = gravity.Gravity(main_menu.edge_toggle[0], main_menu.values)
+    else:
+        if keys[pygame.K_RIGHT]: galaxy.x_pos_list -= 1
+        if keys[pygame.K_LEFT]: galaxy.x_pos_list += 1
+        if keys[pygame.K_UP]: galaxy.y_pos_list += 1
+        if keys[pygame.K_DOWN]: galaxy.y_pos_list -= 1
 
-    scr.fill((0, 0, 0))
-    galaxy.get_forces(dt)
-    galaxy.draw(scr, ballimg)
+        in_menu = keys[pygame.K_m]
 
+        galaxy.get_forces(dt)
+        galaxy.draw(scr)
+
+    mdown = False  # replace with better "on click" option
     pygame.event.pump()
     pygame.display.flip()
 
